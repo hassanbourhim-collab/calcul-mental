@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Calcul Mental – Entraînement (options temps & mode)</title>
+  <title>Calcul Mental – Complet</title>
   <style>
     :root{
       --bg:#f9fafb; --card:#ffffff; --text:#111827; --muted:#6b7280;
@@ -13,7 +13,7 @@
     body{ margin:0; background:var(--bg); color:var(--text);
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial;
       line-height:1.5; display:flex; min-height:100vh; align-items:center; justify-content:center; padding:16px; }
-    .app{ width:min(980px,100%); }
+    .app{ width:min(1000px,100%); }
     .card{ background:var(--card); border-radius:16px; padding:20px; box-shadow: 0 10px 20px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.04); }
     h1{ margin:0 0 12px 0; font-size: clamp(22px, 3vw, 28px); }
     h2{ margin:12px 0 6px; font-size: clamp(18px, 2.5vw, 22px); }
@@ -21,6 +21,7 @@
     .grid{ display:grid; gap:12px; }
     .grid.themes{ grid-template-columns: repeat(1, minmax(0,1fr)); }
     @media (min-width: 720px){ .grid.themes{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (min-width: 920px){ .grid.themes{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
     button{
       appearance:none; border:0; background:var(--primary); color:white; padding:14px 16px;
       border-radius:12px; font-weight:600; cursor:pointer; font-size:16px;
@@ -33,7 +34,6 @@
     .btn-muted:hover{ background:#d1d5db }
     .btn-outline{ background:#fff; color:var(--primary); border:2px solid #dbeafe; box-shadow:none; }
     .btn-outline:hover{ background:#eff6ff }
-    .btn-ghost{ background:transparent; color:var(--text); border:2px dashed #e5e7eb; box-shadow:none; }
     .q{ font-size: clamp(22px, 3.4vw, 28px); margin:8px 0 14px 0; }
     .choices{ display:grid; gap:10px; margin-top:6px; }
     .choice{
@@ -62,10 +62,11 @@
     .kbd button{ padding:16px 0; font-size:18px; border-radius:12px; background:#f3f4f6; color:#111827; box-shadow:none; border:2px solid transparent; }
     .kbd button:hover{ background:#e5e7eb }
     .answer-box{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    input.answer{ font-size:22px; padding:10px 12px; border-radius:10px; border:2px solid #e5e7eb; width:200px; }
+    input.answer{ font-size:22px; padding:10px 12px; border-radius:10px; border:2px solid #e5e7eb; width:220px; }
     .frac{ display:flex; align-items:center; gap:8px; }
-    .frac input{ width:100px; text-align:center; }
+    .frac input{ width:110px; text-align:center; }
     .countdown{ font-size:22px; font-weight:800; color:#111827; }
+    .subtitle{ color:var(--muted); font-size:14px; margin-top:-6px; }
   </style>
 </head>
 <body>
@@ -80,21 +81,36 @@ const sample = (arr) => arr[Math.floor(Math.random()*arr.length)];
 const shuffle = (arr) => arr.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(p=>p[1]);
 const gcd = (a,b) => b ? gcd(b, a % b) : Math.abs(a);
 const simplifyFrac = (n,d) => { const g = gcd(n,d); return [n/g, d/g]; };
+const compareFrac = (a,b,c,d) => a*d - b*c; // >0 if a/b > c/d
 const el = (sel) => document.querySelector(sel);
 const setView = (html) => { el('#view').innerHTML = html; };
 const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
+const uniqueChoices = (arr) => Array.from(new Set(arr));
 
-// ===== Themes =====
+// ===== Themes (15) =====
 const THEMES = [
-  { key:'mult_lt_10', label:'🔢 Multiplications < 10' },
-  { key:'add_carry',   label:'➕ Additions avec retenue' },
-  { key:'decimals',    label:'🔟 Décimaux simples' },
-  { key:'integers',    label:'➖ Relatifs (add/SOU)' },
-  { key:'fractions',   label:'🧮 Fractions à simplifier' },
+  { key:'mult_lt_10',  label:'🔢 Multiplications < 10' },
+  { key:'add_carry',    label:'➕ Additions avec retenue' },
+  { key:'decimals',     label:'🔟 Décimaux simples' },
+  { key:'integers',     label:'➖ Relatifs (add/soustraction)' },
+  { key:'fractions',    label:'🧮 Fractions à simplifier' },
+
+  { key:'mult_lt_20',   label:'✖️ Multiplications < 20' },
+  { key:'div_int_easy', label:'➗ Divisions entières faciles' },
+  { key:'squares_roots',label:'⬛ Carrés & √ exactes' },
+  { key:'perc_simple',  label:'% simples (10,20,25,50)' },
+  { key:'perc_est',     label:'% ordre de grandeur' },
+  { key:'frac_compare', label:'⇅ Comparer des fractions' },
+  { key:'frac_add_same',label:'➕ Fractions : dénom. égal' },
+  { key:'dec_pow10',    label:'🔟 Décimaux × 10/100/1000' },
+  { key:'equations',    label:'x + a = b ; kx = b' },
+  { key:'rel_proddiv',  label:'± Relatifs : × et ÷' },
 ];
 
+// ===== Generators =====
 function genQuestion(themeKey){
   switch(themeKey){
+    // --- 1) Multiplications < 10
     case 'mult_lt_10':{
       const a = rnd(2,9), b = rnd(2,9);
       const correct = a*b;
@@ -106,36 +122,40 @@ function genQuestion(themeKey){
       const choices = shuffle([...cand]);
       return { prompt:`${a} × ${b} = ?`, choices, correctIndex: choices.indexOf(correct), correctValue: correct, type:'int' };
     }
+    // --- 2) Additions avec retenue
     case 'add_carry':{
       const base = [rnd(10,99), rnd(100,999)][Math.random()<0.5?0:1];
-      const mod = [ -1, -2, -3, -4, -5, -6, -7, -8, -9 ][rnd(0,8)];
+      const mod = [ -1,-2,-3,-4,-5,-6,-7,-8,-9 ][rnd(0,8)];
       const a = base - (base%10) + (10 + mod);
       const add = rnd(2,9);
       const correct = a + add;
       const choices = shuffle([ correct, correct-1, correct+1, (a + 10) ]);
       return { prompt:`${a} + ${add} = ?`, choices, correctIndex: choices.indexOf(correct), correctValue: correct, type:'int' };
     }
+    // --- 3) Décimaux simples (±, 1 décimale)
     case 'decimals':{
       const a = (rnd(10,150)/10).toFixed(1);
       const b = (rnd(5,100)/10).toFixed(1);
       const op = Math.random()<0.5 ? '+' : '−';
       const av = parseFloat(a), bv = parseFloat(b);
       const correct = parseFloat((op==='+'? av+bv : av-bv).toFixed(1));
-      const choices = shuffle([
+      const choices = shuffle(uniqueChoices([
         correct,
         parseFloat((correct+0.1).toFixed(1)),
         parseFloat((correct-0.1).toFixed(1)),
         parseFloat((op==='+'? av+(bv+1) : av-(bv-1)).toFixed(1))
-      ]);
+      ]));
       return { prompt:`${a} ${op} ${b} = ?`, choices, correctIndex: choices.indexOf(correct), correctValue: correct, type:'decimal1' };
     }
+    // --- 4) Relatifs (±)
     case 'integers':{
       const a = rnd(-20,20), b = rnd(-20,20);
       const op = Math.random()<0.5 ? '+' : '−';
       const correct = op==='+' ? a+b : a-b;
-      const choices = shuffle([ correct, correct+1, correct-1, -correct ]);
+      const choices = shuffle(uniqueChoices([ correct, correct+1, correct-1, -correct ]));
       return { prompt:`${a} ${op} ${b} = ?`, choices, correctIndex: choices.indexOf(correct), correctValue: correct, type:'int' };
     }
+    // --- 5) Fractions à simplifier
     case 'fractions':{
       const a = rnd(2,9), b = rnd(2,9);
       const k = rnd(2,9);
@@ -147,6 +167,120 @@ function genQuestion(themeKey){
       const wrong3 = `${n}/${d}`;
       const choices = shuffle([correct, wrong1, wrong2, wrong3]);
       return { prompt:`Simplifier ${n}/${d}`, choices, correctIndex: choices.indexOf(correct), correctValue: correct, type:'fraction' };
+    }
+    // --- 6) Multiplications < 20
+    case 'mult_lt_20':{
+      const a = rnd(6,19), b = rnd(6,19);
+      const correct = a*b;
+      const near = [correct- a, correct + a, correct- b, correct + b];
+      const misc = [correct + sample([-3,-2,-1,1,2,3])];
+      const pool = uniqueChoices([correct, ...near, ...misc]).filter(x=>x>0).slice(0,4);
+      const choices = shuffle(pool.length>=4?pool:[correct, correct-1, correct+1, correct+a]);
+      return { prompt:`${a} × ${b} = ?`, choices, correctIndex: choices.indexOf(correct), correctValue: correct, type:'int' };
+    }
+    // --- 7) Divisions entières faciles
+    case 'div_int_easy':{
+      const b = sample([2,3,4,5,6,7,8,9,10,12]);
+      const q = rnd(2,20);
+      const a = b*q;
+      const correct = q;
+      const choices = shuffle(uniqueChoices([ correct, q+1, q-1, q+2 ]).filter(v=>v>=0));
+      return { prompt:`${a} ÷ ${b} = ?`, choices, correctIndex: choices.indexOf(correct), correctValue: correct, type:'int' };
+    }
+    // --- 8) Carrés & racines exactes
+    case 'squares_roots':{
+      if(Math.random()<0.5){
+        const n = rnd(6,20);
+        const correct = n*n;
+        const choices = shuffle(uniqueChoices([ correct, (n-1)*(n-1), (n+1)*(n+1), correct+10 ]));
+        return { prompt:`${n}² = ?`, choices, correctIndex: choices.indexOf(correct), correctValue: correct, type:'int' };
+      }else{
+        const sq = sample([4,9,16,25,36,49,64,81,100,121,144,169,196,225,256,289,324,361,400]);
+        const correct = Math.round(Math.sqrt(sq));
+        const choices = shuffle(uniqueChoices([ correct, correct-1, correct+1, correct+2 ]).filter(v=>v>0));
+        return { prompt:`√${sq} = ?`, choices, correctIndex: choices.indexOf(correct), correctValue: correct, type:'int' };
+      }
+    }
+    // --- 9) Pourcentages “simples” (10,20,25,50)
+    case 'perc_simple':{
+      const pct = sample([10,20,25,50]);
+      const base = sample([40,80,100,120,160,200,240,400,500,800]);
+      const correct = Math.round(base * pct / 100);
+      const choices = shuffle(uniqueChoices([ correct, Math.round(base*(pct+10)/100), Math.round(base*(pct-10)/100), Math.round(base*(pct/2)/100*100) ]));
+      return { prompt:`${pct}% de ${base} = ?`, choices, correctIndex: choices.indexOf(correct), correctValue: correct, type:'int' };
+    }
+    // --- 10) Pourcentages “ordre de grandeur”
+    case 'perc_est':{
+      const pct = rnd(11,89);
+      const base = sample([100,200,300,400,500,800,1000]);
+      const correct = Math.round(base * pct / 100);
+      // Déclinaisons pièges : 50%≈, base, pct seul
+      const choices = shuffle(uniqueChoices([ correct, Math.round(base*0.5), base, pct ]));
+      return { prompt:`${pct}% de ${base} = ?`, choices, correctIndex: choices.indexOf(correct), correctValue: correct, type:'int' };
+    }
+    // --- 11) Comparer des fractions
+    case 'frac_compare':{
+      const a = rnd(2,9), b = rnd(3,10);
+      const c = rnd(2,9), d = rnd(3,10);
+      const left = `${a}/${b}`, right = `${c}/${d}`;
+      const cmp = compareFrac(a,b,c,d);
+      const correct = cmp>0 ? left : (cmp<0 ? right : 'égal');
+      const choices = shuffle(uniqueChoices([ left, right, 'égal', cmp>0?right:left ]));
+      return { prompt:`Laquelle est la plus grande ? ${left} ou ${right}`, choices, correctIndex: choices.indexOf(correct), correctValue: correct, type:'pick_one' };
+    }
+    // --- 12) Fractions : addition même dénominateur
+    case 'frac_add_same':{
+      const den = rnd(3,12);
+      const n1 = rnd(1,den-1), n2 = rnd(1,den-1);
+      const s = n1+n2;
+      const [sn, sd] = simplifyFrac(s, den);
+      const correct = `${sn}/${sd}`;
+      const wrong1 = `${s}/${den}`; // non simplifié
+      const wrong2 = `${sn}/${Math.max(2, sd+1)}`;
+      const wrong3 = `${Math.max(1, sn+1)}/${sd}`;
+      const choices = shuffle(uniqueChoices([correct, wrong1, wrong2, wrong3]));
+      return { prompt:`${n1}/${den} + ${n2}/${den} = ? (forme simplifiée)`, choices, correctIndex: choices.indexOf(correct), correctValue: correct, type:'fraction' };
+    }
+    // --- 13) Décimaux × 10/100/1000
+    case 'dec_pow10':{
+      const base = (rnd(10,999)/10); // 1 décimale
+      const pow = sample([10,100,1000]);
+      const correct = base * pow;
+      const choices = shuffle(uniqueChoices([ correct, base*(pow/10), base*(pow*10), base*(pow-1) ]).map(v=>Number(v.toFixed(1))));
+      return { prompt:`${base.toFixed(1)} × ${pow} = ?`, choices, correctIndex: choices.indexOf(Number(correct.toFixed(1))), correctValue: Number(correct.toFixed(1)), type:'decimal1' };
+    }
+    // --- 14) Équations simples
+    case 'equations':{
+      if(Math.random()<0.5){
+        const a = rnd(2,20), b = rnd(5,40);
+        const x = b - a;
+        const correct = x;
+        const choices = shuffle(uniqueChoices([ correct, x+1, x-1, x+2 ]));
+        return { prompt:`Résoudre : x + ${a} = ${b}`, choices, correctIndex: choices.indexOf(correct), correctValue: correct, type:'int' };
+      }else{
+        const k = sample([2,3,4,5,6,7,8,9]);
+        const x = rnd(2,20);
+        const b = k*x;
+        const correct = x;
+        const choices = shuffle(uniqueChoices([ correct, x+1, x-1, x+2 ]));
+        return { prompt:`Résoudre : ${k}x = ${b}`, choices, correctIndex: choices.indexOf(correct), correctValue: correct, type:'int' };
+      }
+    }
+    // --- 15) Relatifs : produits / divisions
+    case 'rel_proddiv':{
+      const a = rnd(-12,12), b = rnd(-12,12) || 1;
+      const op = Math.random()<0.6 ? '×' : '÷';
+      if(op==='×'){
+        const correct = a*b;
+        const choices = shuffle(uniqueChoices([ correct, -a*b, correct+1, correct-1 ]));
+        return { prompt:`${a} × ${b} = ?`, choices, correctIndex: choices.indexOf(correct), correctValue: correct, type:'int' };
+      }else{
+        const den = b===0 ? 1 : b;
+        const num = den * rnd(-12,12);
+        const correct = den===0 ? 0 : (num/den);
+        const choices = shuffle(uniqueChoices([ correct, -correct, correct+1, correct-1 ]));
+        return { prompt:`${num} ÷ ${den} = ?`, choices, correctIndex: choices.indexOf(correct), correctValue: correct, type:'int' };
+      }
     }
   }
 }
@@ -163,18 +297,19 @@ let state = {
   timeLeft: 0,
   recapId: null,
   recapLeft: 0,
-  fracFocus: 'num' // for free fraction
+  fracFocus: 'num'
 };
 
 // ===== Screens =====
 function renderHome(){
   clearAllTimers();
   setView(`
-    <h1>Calcul Mental – Entraînement</h1>
-    <p class="lead">Choisis un thème. 10 questions aléatoires. Tu pourras choisir <strong>QCM ou Réponse libre</strong> et le <strong>temps par question</strong>.</p>
+    <h1>Calcul Mental – Entraînement (Complet)</h1>
+    <p class="lead">Choisis un thème. 10 questions aléatoires. <strong>QCM</strong> ou <strong>Réponse libre</strong>. <strong>Temps au choix</strong>.</p>
     <div class="grid themes">
       ${THEMES.map(t=>`<button class="btn-theme" data-key="${t.key}">${t.label}</button>`).join('')}
     </div>
+    <p class="subtitle">Astuce : en mode “Réponse libre”, tape avec la virgule si besoin. Pour les fractions, remplis numérateur et dénominateur.</p>
   `);
   document.querySelectorAll('.btn-theme').forEach(btn=>{
     btn.addEventListener('click', ()=> renderOptions(btn.dataset.key));
@@ -247,7 +382,7 @@ function renderOptions(themeKey){
   el('#btn-back').addEventListener('click', renderHome);
 }
 
-function renderRecap(fromPreview){
+function renderRecap(){
   clearAllTimers();
   state.recapLeft = 5;
   setView(`
@@ -292,10 +427,11 @@ function renderQuestion(){
     <div class="q">${q.prompt}</div>
   `;
   let body = '';
-  if(state.mode==='qcm'){
+  if(state.mode==='qcm' || q.type==='pick_one'){ // certains thèmes imposent QCM (comparaison)
+    const arr = q.choices && q.choices.length ? q.choices : makeChoicesFromValue(q);
     body = `
       <div class="choices">
-        ${q.choices.map((c,i)=>`<div class="choice" data-i="${i}">${c}</div>`).join('')}
+        ${arr.map((c,i)=>`<div class="choice" data-i="${i}">${c}</div>`).join('')}
       </div>
     `;
   }else{
@@ -328,7 +464,7 @@ function renderQuestion(){
   setView(header + body + footer);
   el('#btn-home').addEventListener('click', renderHome);
 
-  if(state.mode==='qcm'){
+  if(state.mode==='qcm' || q.type==='pick_one'){
     document.querySelectorAll('.choice').forEach(ch=>{
       ch.addEventListener('click', ()=> chooseQCM(parseInt(ch.dataset.i,10)));
     });
@@ -336,6 +472,18 @@ function renderQuestion(){
     initKeypad(q.type==='fraction');
   }
   startTimer();
+}
+
+function makeChoicesFromValue(q){
+  // fallback if a generator gave only a single answer value
+  const correct = q.correctValue;
+  if(typeof correct === 'number'){
+    return shuffle(uniqueChoices([correct, correct+1, correct-1, correct+2]));
+  }
+  if(typeof correct === 'string'){
+    return shuffle(uniqueChoices([correct]));
+  }
+  return [];
 }
 
 function renderKeypad(isFraction){
@@ -347,7 +495,7 @@ function renderKeypad(isFraction){
     <button data-k="0">0</button><button data-k=",">,</button><button data-k="+/-">+/-</button>
     <button data-k="back" class="btn-outline">Effacer</button>
     <button data-k="ok">Valider</button>
-    ${isFraction ? '<button data-k="swap" class="btn-ghost">↕ basculer num/den</button>' : '<span></span>'}
+    ${isFraction ? '<button data-k="swap" class="btn-outline">↕ num / den</button>' : '<span></span>'}
   </div>`;
 }
 
@@ -379,8 +527,7 @@ function initKeypad(isFraction){
       }
       if(k==='+/-'){
         if(isFraction){
-          // fractions générées positives → ignorer signe
-          return;
+          return; // on garde des fractions positives ici
         }else{
           if(input.value.startsWith('-')) input.value = input.value.slice(1);
           else input.value = '-' + input.value;
@@ -407,8 +554,8 @@ function startTimer(){
     updateTimerUI();
     if(state.timeLeft <= 0){
       clearInterval(state.timerId); state.timerId=null;
-      // timeout: record as wrong
-      if(state.mode==='qcm'){
+      const q = state.questions[state.index];
+      if(state.mode==='qcm' || q.type==='pick_one'){
         recordAnswer({ choiceIndex:-1, isCorrect:false, timedOut:true });
       }else{
         recordAnswer({ freeValue:null, isCorrect:false, timedOut:true });
@@ -435,7 +582,7 @@ function chooseQCM(i){
   const q = state.questions[state.index];
   const correct = q.correctIndex;
   const isCorrect = i===correct;
-  // visual
+  // visuel
   document.querySelectorAll('.choice').forEach((ch,idx)=>{
     ch.classList.remove('correct','wrong');
     if(idx===correct) ch.classList.add('correct');
@@ -468,7 +615,6 @@ function chooseFree(){
   clearAllTimers();
   const q = state.questions[state.index];
   const user = parseFree(q);
-  // evaluate
   let isCorrect=false;
   if(q.type==='fraction'){
     isCorrect = user === q.correctValue;
@@ -478,7 +624,6 @@ function chooseFree(){
     isCorrect = Number(user) === Number(q.correctValue);
   }
   recordAnswer({ freeValue:user, isCorrect, timedOut:false });
-  // brief feedback (no color choices here)
   setTimeout(advance, 200);
 }
 
