@@ -3,58 +3,596 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Calcul Mental – Complet (Multi-thèmes)</title>
+  <title>🧮 Calcul Mental - Collège</title>
   <style>
-    :root{ --bg:#f9fafb; --card:#ffffff; --text:#111827; --muted:#6b7280;
-      --primary:#2563eb; --primary-2:#1d4ed8; --good:#16a34a; --bad:#dc2626; --warn:#f59e0b; }
-    *{box-sizing:border-box}
-    body{ margin:0; background:var(--bg); color:var(--text);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial;
-      line-height:1.5; display:flex; min-height:100vh; align-items:center; justify-content:center; padding:16px; }
-    .app{ width:min(1100px,100%); }
-    .card{ background:var(--card); border-radius:16px; padding:20px; box-shadow:0 10px 20px rgba(0,0,0,.06),0 2px 6px rgba(0,0,0,.04); }
-    h1{ margin:0 0 12px 0; font-size: clamp(22px, 3vw, 28px); }
-    h2{ margin:12px 0 6px; font-size: clamp(18px, 2.5vw, 22px); }
-    p.lead{ color:var(--muted); margin:0 0 16px 0 }
-    .grid{ display:grid; gap:12px; }
-    .themes{ display:grid; grid-template-columns: repeat(1, minmax(0,1fr)); gap:8px; }
-    @media (min-width: 720px){ .themes{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
-    @media (min-width: 980px){ .themes{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
-    .theme-item{ display:flex; gap:10px; align-items:center; background:#f3f4f6; border-radius:12px; padding:10px; }
-    .theme-item input{ width:18px; height:18px; }
-    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-    button{ appearance:none; border:0; background:var(--primary); color:white; padding:12px 14px;
-      border-radius:12px; font-weight:700; cursor:pointer; font-size:15px;
-      transition: transform .02s ease-in-out, background .15s ease-in-out; }
-    button:hover{ background:var(--primary-2) } button:active{ transform: translateY(1px) }
-    .btn-muted{ background:#e5e7eb; color:#111827; } .btn-outline{ background:#fff; color:var(--primary); border:2px solid #dbeafe; }
-    .seg{ display:flex; gap:8px; flex-wrap:wrap; }
-    .seg button{ background:#eef2ff; color:#1d4ed8; border:2px solid #dbeafe; }
-    .seg button.active{ background:#1d4ed8; color:#fff; }
-    select, input[type="number"]{ padding:10px 12px; border-radius:10px; border:2px solid #e5e7eb; font-size:15px; }
-    .progress{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; color:var(--muted); font-weight:600; }
-    .bar{ position:relative; height:10px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
-    .bar > span{ position:absolute; inset:0; width:0%; background:linear-gradient(90deg,#60a5fa,#2563eb); transition: width .25s ease; }
-    .q{ font-size: clamp(22px, 3.4vw, 28px); margin:8px 0 10px; }
-    .subq{ color:var(--muted); margin:-6px 0 10px; font-size:14px; }
-    .choices{ display:grid; gap:10px; }
-    .choice{ background:#f3f4f6; border-radius:12px; padding:14px; text-align:center; font-weight:700; cursor:pointer; border:2px solid transparent; }
-    .choice.correct{ background:#ecfdf5; border-color:#86efac; } .choice.wrong{ background:#fef2f2; border-color:#fecaca; }
-    .footer-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; align-items:center; }
-    .timer { display:flex; align-items:center; gap:8px; font-weight:700; }
-    .timer .dot{ width:10px; height:10px; border-radius:999px; background:#16a34a; }
-    .timer.warn .dot{ background:#f59e0b; } .timer.urgent .dot{ background:#dc2626; }
-    .result-row{ display:flex; justify-content:space-between; gap:8px; padding:10px 0; border-bottom:1px dashed #e5e7eb; }
-    .pill{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; font-weight:700; }
-    .pill.good{ background:#ecfdf5; color:#166534; } .pill.bad{ background:#fef2f2; color:#991b1b; }
-    .answer-box{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    input.answer{ font-size:22px; padding:10px 12px; border-radius:10px; border:2px solid #e5e7eb; width:220px; }
-    .kbd{ display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:8px; }
-    .kbd button{ padding:16px 0; font-size:18px; border-radius:12px; background:#f3f4f6; color:#111827; border:2px solid transparent; }
-    .kbd button:hover{ background:#e5e7eb }
-    .frac{ display:flex; align-items:center; gap:8px; }
-    .frac input{ width:110px; text-align:center; }
-    .countdown{ font-size:22px; font-weight:800; color:#111827; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    
+    :root {
+      --primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --primary-light: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --success: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+      --warning: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+      --danger: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      --card: #ffffff;
+      --bg: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      --text: #2d3748;
+      --text-light: #718096;
+      --border: #e2e8f0;
+      --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .app {
+      width: min(1200px, 100%);
+      animation: slideUp 0.8s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: var(--primary);
+    }
+
+    h1 {
+      font-size: clamp(28px, 4vw, 36px);
+      font-weight: 800;
+      margin-bottom: 16px;
+      background: var(--primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: clamp(20px, 3vw, 24px);
+      font-weight: 700;
+      margin: 24px 0 12px 0;
+      color: var(--text);
+    }
+
+    .lead {
+      color: var(--text-light);
+      margin-bottom: 32px;
+      font-size: 18px;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .themes {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin: 24px 0;
+    }
+
+    .theme-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .theme-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: var(--primary-light);
+      transition: left 0.5s ease;
+      z-index: 0;
+    }
+
+    .theme-item:hover::before {
+      left: 0;
+    }
+
+    .theme-item:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: transparent;
+    }
+
+    .theme-item input {
+      width: 24px;
+      height: 24px;
+      accent-color: #667eea;
+      cursor: pointer;
+      z-index: 1;
+      position: relative;
+    }
+
+    .theme-item span {
+      font-weight: 600;
+      font-size: 16px;
+      z-index: 1;
+      position: relative;
+    }
+
+    .row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      margin: 20px 0;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      background: var(--primary);
+      color: white;
+      padding: 16px 24px;
+      border-radius: 16px;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      min-width: 120px;
+    }
+
+    button::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: all 0.6s ease;
+    }
+
+    button:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .btn-outline {
+      background: white;
+      color: #667eea;
+      border: 2px solid #667eea;
+    }
+
+    .btn-outline:hover {
+      background: #667eea;
+      color: white;
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-muted {
+      background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e0 100%);
+      color: var(--text);
+    }
+
+    .btn-muted:hover {
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .seg {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .seg button {
+      background: white;
+      color: #667eea;
+      border: 2px solid #e2e8f0;
+      min-width: 80px;
+      padding: 12px 20px;
+    }
+
+    .seg button.active {
+      background: var(--primary);
+      color: white;
+      border-color: transparent;
+      transform: scale(1.05);
+    }
+
+    .progress {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 16px;
+      font-weight: 600;
+      color: var(--text-light);
+    }
+
+    .bar {
+      position: relative;
+      height: 12px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+      flex: 1;
+    }
+
+    .bar > span {
+      position: absolute;
+      inset: 0;
+      width: 0%;
+      background: var(--primary);
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 999px;
+    }
+
+    .q {
+      font-size: clamp(24px, 4vw, 32px);
+      font-weight: 700;
+      margin: 20px 0;
+      text-align: center;
+      color: var(--text);
+    }
+
+    .subq {
+      color: var(--text-light);
+      margin-bottom: 20px;
+      font-size: 16px;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .choices {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin: 32px 0;
+    }
+
+    .choice {
+      background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+      border: 3px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 20px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .choice::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: var(--primary-light);
+      transition: left 0.3s ease;
+      z-index: 0;
+    }
+
+    .choice:hover::before {
+      left: 0;
+    }
+
+    .choice:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: #667eea;
+    }
+
+    .choice span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .choice.correct {
+      background: var(--success);
+      border-color: #84fab0;
+      color: #065f46;
+      animation: pulse 0.6s ease;
+    }
+
+    .choice.wrong {
+      background: var(--danger);
+      border-color: #ff9a9e;
+      color: #991b1b;
+      animation: shake 0.6s ease;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    .timer {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      padding: 12px 20px;
+      background: var(--success);
+      border-radius: 50px;
+      color: #065f46;
+      transition: all 0.3s ease;
+    }
+
+    .timer .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #065f46;
+      animation: pulse-dot 2s infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.2); opacity: 0.7; }
+    }
+
+    .timer.warn {
+      background: var(--warning);
+      color: #92400e;
+    }
+
+    .timer.warn .dot {
+      background: #92400e;
+    }
+
+    .timer.urgent {
+      background: var(--danger);
+      color: #991b1b;
+      animation: shake 0.5s infinite;
+    }
+
+    .timer.urgent .dot {
+      background: #991b1b;
+    }
+
+    .footer-actions {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 32px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .answer-box {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 32px 0;
+    }
+
+    input.answer {
+      font-size: 24px;
+      padding: 16px 20px;
+      border-radius: 16px;
+      border: 3px solid var(--border);
+      background: white;
+      color: var(--text);
+      font-weight: 600;
+      text-align: center;
+      transition: all 0.3s ease;
+      min-width: 180px;
+    }
+
+    input.answer:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+      transform: scale(1.02);
+    }
+
+    .kbd {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 24px;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .kbd button {
+      padding: 20px 16px;
+      font-size: 20px;
+      font-weight: 700;
+      border-radius: 16px;
+      background: white;
+      color: var(--text);
+      border: 2px solid var(--border);
+      min-width: 0;
+    }
+
+    .kbd button:hover {
+      background: var(--primary);
+      color: white;
+      border-color: transparent;
+    }
+
+    .frac {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 32px;
+      font-weight: 700;
+    }
+
+    .frac input {
+      width: 120px;
+    }
+
+    .countdown {
+      font-size: 48px;
+      font-weight: 800;
+      background: var(--primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-align: center;
+      animation: bounce 1s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-10px); }
+      60% { transform: translateY(-5px); }
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 20px 0;
+      border-bottom: 2px dashed var(--border);
+      align-items: center;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .pill.good {
+      background: var(--success);
+      color: #065f46;
+    }
+
+    .pill.bad {
+      background: var(--danger);
+      color: #991b1b;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .card {
+        padding: 24px;
+        border-radius: 20px;
+      }
+
+      .themes {
+        grid-template-columns: 1fr;
+      }
+
+      .choices {
+        grid-template-columns: 1fr;
+      }
+
+      .row {
+        justify-content: center;
+      }
+
+      .footer-actions {
+        justify-content: center;
+      }
+    }
+
+    /* Animation d'entrée pour les éléments */
+    .theme-item,
+    .choice,
+    .seg button {
+      animation: slideInUp 0.6s ease forwards;
+      opacity: 0;
+    }
+
+    .theme-item:nth-child(1) { animation-delay: 0.1s; }
+    .theme-item:nth-child(2) { animation-delay: 0.2s; }
+    .theme-item:nth-child(3) { animation-delay: 0.3s; }
+    .theme-item:nth-child(4) { animation-delay: 0.4s; }
+    .theme-item:nth-child(5) { animation-delay: 0.5s; }
+
+    @keyframes slideInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
   </style>
 </head>
 <body>
@@ -226,10 +764,10 @@ let state={
 // Screens
 function renderHome(){
   setView(`
-    <h1>Calcul Mental – Entraînement (mix de thèmes)</h1>
-    <p class="lead">Coche un ou plusieurs thèmes. À chaque question, un thème est tiré au sort parmi ta sélection.</p>
-    <h2>Thèmes</h2>
-    <div class="row" style="margin-bottom:8px">
+    <h1>🧮 Calcul Mental - Collège</h1>
+    <p class="lead">Choisis un ou plusieurs thèmes et teste tes compétences en calcul mental !</p>
+    <h2>🎯 Thèmes disponibles</h2>
+    <div class="row" style="margin-bottom:20px">
       <button id="btn-all" class="btn-outline">Tout cocher</button>
       <button id="btn-none" class="btn-outline">Tout décocher</button>
       <button id="btn-basic" class="btn-outline">Pack collège (10)</button>
@@ -242,29 +780,29 @@ function renderHome(){
         </label>
       `).join('')}
     </div>
-    <div class="grid" style="margin-top:14px">
+    <div class="grid" style="margin-top:32px">
       <div>
-        <h2>Mode de réponse</h2>
+        <h2>🎮 Mode de réponse</h2>
         <div class="seg">
           <button id="m-qcm" class="active">QCM</button>
           <button id="m-free">Réponse libre</button>
         </div>
       </div>
       <div>
-        <h2>Temps par question</h2>
+        <h2>⏱️ Temps par question</h2>
         <div class="seg" id="time-seg">
           ${[5,8,10,12,15,20].map(s=>`<button class="tbtn" data-s="${s}">${s}s</button>`).join('')}
           <button class="tbtn" data-s="custom">Libre…</button>
         </div>
       </div>
       <div>
-        <h2>Nombre de questions</h2>
+        <h2>📊 Nombre de questions</h2>
         <div class="seg" id="count-seg">
           ${[5,10,15,20].map(n=>`<button class="cbtn" data-n="${n}">${n}</button>`).join('')}
         </div>
       </div>
       <div class="row">
-        <button id="btn-start">Commencer</button>
+        <button id="btn-start">🚀 Commencer</button>
       </div>
     </div>
   `);
@@ -317,17 +855,19 @@ function startFromHome(){
 function renderRecap(){
   state.recapLeft=5;
   setView(`
-    <h1>Prêt ?</h1>
-    <p class="lead">Tu vas jouer <strong>${state.numQuestions} questions</strong>.</p>
-    <ul>
-      <li>Thèmes sélectionnés : <strong>${state.selectedThemes.map(labelForTheme).join(', ')}</strong></li>
-      <li>Mode : <strong>${state.mode==='qcm'?'QCM':'Réponse libre'}</strong></li>
-      <li>Temps par question : <strong>${state.secondsPerQ} s</strong></li>
-    </ul>
+    <h1>🎯 Prêt à commencer ?</h1>
+    <p class="lead">Tu vas jouer <strong>${state.numQuestions} questions</strong> de calcul mental !</p>
+    <div style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); padding: 24px; border-radius: 16px; margin: 24px 0;">
+      <ul style="list-style: none; padding: 0; margin: 0;">
+        <li style="margin: 12px 0; font-size: 16px;">🎯 Thèmes sélectionnés : <strong>${state.selectedThemes.map(labelForTheme).join(', ')}</strong></li>
+        <li style="margin: 12px 0; font-size: 16px;">🎮 Mode : <strong>${state.mode==='qcm'?'QCM':'Réponse libre'}</strong></li>
+        <li style="margin: 12px 0; font-size: 16px;">⏱️ Temps par question : <strong>${state.secondsPerQ} s</strong></li>
+      </ul>
+    </div>
     <p class="countdown" id="countdown">Démarrage dans ${state.recapLeft}…</p>
     <div class="footer-actions">
-      <button id="btn-cancel" class="btn-muted">Annuler</button>
-      <button id="btn-skip" class="btn-outline">Démarrer maintenant</button>
+      <button id="btn-cancel" class="btn-muted">❌ Annuler</button>
+      <button id="btn-skip" class="btn-outline">🚀 Démarrer maintenant</button>
     </div>
   `);
   const cd=()=>{ const c=el('#countdown'); if(c) c.textContent=`Démarrage dans ${state.recapLeft}…`; };
@@ -357,7 +897,7 @@ function renderQuestion(){
   const progress=(state.index/state.questions.length)*100;
   setView(`
     <div class="progress">
-      <div>${state.index+1}/${state.questions.length} • ${state.mode==='qcm'?'QCM':'Réponse libre'}</div>
+      <div>Question ${state.index+1}/${state.questions.length} • ${state.mode==='qcm'?'QCM':'Réponse libre'}</div>
       <div class="bar" style="flex:1"><span style="width:${progress}%"></span></div>
     </div>
     <div class="subq">Thème : <strong>${labelForTheme(q.theme)}</strong></div>
@@ -365,7 +905,7 @@ function renderQuestion(){
     ${renderBody(q)}
     <div class="footer-actions">
       <div id="timer" class="timer"><span class="dot"></span><span id="tsec"></span></div>
-      <button class="btn-outline" id="btn-home">Accueil</button>
+      <button class="btn-outline" id="btn-home">🏠 Accueil</button>
     </div>
   `);
   el('#btn-home').addEventListener('click', renderHome);
@@ -380,7 +920,7 @@ function renderQuestion(){
 function renderBody(q){
   if(state.mode==='qcm' || q.type==='pick_one'){
     const arr=q.choices && q.choices.length?q.choices:[q.correctValue, q.correctValue+1, q.correctValue-1, q.correctValue+2];
-    return `<div class="choices">${arr.map((c,i)=>`<div class="choice" data-i="${i}">${c}</div>`).join('')}</div>`;
+    return `<div class="choices">${arr.map((c,i)=>`<div class="choice" data-i="${i}"><span>${c}</span></div>`).join('')}</div>`;
   }else{
     if(q.type==='fraction'){
       return `
@@ -411,8 +951,8 @@ function renderKeypad(isFraction){
     <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
     <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
     <button data-k="0">0</button><button data-k=",">,</button><button data-k="+/-">+/-</button>
-    <button data-k="back" class="btn-outline">Effacer</button>
-    <button data-k="ok">Valider</button>
+    <button data-k="back" class="btn-outline">⌫ Effacer</button>
+    <button data-k="ok">✅ Valider</button>
     ${isFraction?'<button data-k="swap" class="btn-outline">↕ num / den</button>':'<span></span>'}
   </div>`;
 }
@@ -466,7 +1006,7 @@ function chooseQCM(i){
     if(idx===i && idx!==correct) ch.classList.add('wrong');
     ch.style.pointerEvents='none';
   });
-  recordAnswer({choiceIndex:i,isCorrect,timedOut:false}); setTimeout(advance,550);
+  recordAnswer({choiceIndex:i,isCorrect,timedOut:false}); setTimeout(advance,800);
 }
 
 function parseFree(q){
@@ -497,15 +1037,19 @@ function advance(){
 
 function renderResult(){
   const total=state.answers.filter(a=>a.isCorrect).length;
+  const percentage = Math.round((total/state.questions.length)*100);
   setView(`
-    <h1>Résultat</h1>
-    <p class="lead">Score : <strong>${total}/${state.questions.length}</strong></p>
+    <h1>🎉 Résultat</h1>
+    <p class="lead">Score : <strong>${total}/${state.questions.length}</strong> (${percentage}%)</p>
+    <div style="text-align: center; margin: 24px 0;">
+      ${percentage >= 80 ? '🏆 Excellent !' : percentage >= 60 ? '👍 Bien joué !' : percentage >= 40 ? '💪 Continue tes efforts !' : '📚 Il faut réviser !'}
+    </div>
     <div class="grid">
       ${state.questions.map((q,idx)=>{
         const a=state.answers[idx];
         const user = a.freeValue!=null ? a.freeValue : (a.choiceIndex>=0 ? q.choices[a.choiceIndex] : '—');
         const corr = q.type==='decimal1' ? Number(q.correctValue).toFixed(1) : q.correctValue;
-        const info = a.timedOut ? '⏳ temps écoulé' : (a.isCorrect ? '✔' : '✘');
+        const info = a.timedOut ? '⏳ temps écoulé' : (a.isCorrect ? '✓' : '✗');
         return `
         <div class="result-row">
           <div><strong>Q${idx+1}.</strong> [${labelForTheme(a.theme)}] ${q.prompt}</div>
@@ -513,9 +1057,9 @@ function renderResult(){
         </div>`;
       }).join('')}
     </div>
-    <div class="footer-actions" style="margin-top:16px">
-      <button id="btn-retry" class="">Rejouer (mêmes thèmes)</button>
-      <button id="btn-accueil" class="btn-muted">Revenir à l’accueil</button>
+    <div class="footer-actions" style="margin-top:32px">
+      <button id="btn-retry" class="">🔄 Rejouer (mêmes thèmes)</button>
+      <button id="btn-accueil" class="btn-muted">🏠 Revenir à l'accueil</button>
     </div>
   `);
   el('#btn-retry').addEventListener('click', ()=> renderRecap());
