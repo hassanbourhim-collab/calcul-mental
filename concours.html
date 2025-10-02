@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Concours Calcul Mental – Lite</title>
+  <style>
+    :root{ --bg:#0f172a; --card:#0b1224; --muted:#94a3b8; --text:#e2e8f0;
+      --primary:#60a5fa; --primary-2:#3b82f6; --good:#22c55e; --bad:#ef4444; --warn:#f59e0b; }
+    *{box-sizing:border-box}
+    body{ margin:0; background:linear-gradient(180deg,#0b1224,#0f172a 35%, #0b1224);
+      color:var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"; 
+      display:flex; min-height:100vh; align-items:center; justify-content:center; padding:20px; }
+    .app{ width:min(1100px,100%); }
+    .card{ background:rgba(11,18,36,.7); border:1px solid rgba(148,163,184,.15); border-radius:16px; padding:20px; box-shadow: 0 10px 30px rgba(0,0,0,.25) inset, 0 10px 40px rgba(37,99,235,.08); }
+    h1{ margin:0 0 8px; font-size: clamp(22px,3vw,30px); letter-spacing:.3px }
+    h2{ margin:12px 0 6px; font-size: clamp(18px,2.4vw,22px) }
+    p.lead{ color:var(--muted); margin:0 0 14px }
+    button{ appearance:none; border:0; background:linear-gradient(90deg,#60a5fa,#3b82f6); color:white; padding:12px 14px; border-radius:12px; font-weight:800; cursor:pointer; font-size:15px; letter-spacing:.3px; }
+    button:hover{ filter: brightness(1.05) } button:active{ transform: translateY(1px) }
+    .btn-outline{ background:transparent; border:2px solid #334155; color:#e2e8f0 }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center }
+    .grid{ display:grid; gap:12px }
+    input, select{ background:#0b1224; color:#e2e8f0; border:2px solid #334155; border-radius:10px; padding:10px 12px; font-size:15px; }
+    label{ color:#cbd5e1; font-weight:600 }
+    .themes{ display:grid; grid-template-columns: repeat(1,minmax(0,1fr)); gap:8px }
+    @media (min-width: 780px){ .themes{ grid-template-columns: repeat(2,minmax(0,1fr)); } }
+    @media (min-width: 1020px){ .themes{ grid-template-columns: repeat(3,minmax(0,1fr)); } }
+    .theme-item{ display:flex; gap:10px; align-items:center; background:#0a1020; border:1px solid #263048; border-radius:12px; padding:10px }
+    .theme-item input{ width:18px; height:18px }
+    .progress{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; color:#94a3b8; font-weight:700 }
+    .bar{ position:relative; height:10px; background:#1f2937; border-radius:999px; overflow:hidden }
+    .bar > span{ position:absolute; inset:0; width:0%; background:linear-gradient(90deg,#60a5fa,#3b82f6); transition: width .25s ease; }
+    .q{ font-size: clamp(22px,3.4vw,28px); margin:8px 0 10px }
+    .subq{ color:#94a3b8; margin:-6px 0 10px; font-size:14px }
+    .choices{ display:grid; gap:10px }
+    .choice{ background:#0a1020; border:1px solid #263048; border-radius:12px; padding:14px; text-align:center; font-weight:800; cursor:pointer }
+    .choice.correct{ outline:2px solid #22c55e } .choice.wrong{ outline:2px solid #ef4444 }
+    .footer-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; align-items:center }
+    .timer{ display:flex; align-items:center; gap:8px; font-weight:800 }
+    .pill{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; font-weight:800 }
+    .pill.good{ background:#0a1e12; color:#22c55e; border:1px solid #14532d }
+    .pill.bad{ background:#220d0d; color:#ef4444; border:1px solid #7f1d1d }
+    .kbd{ display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:8px }
+    .kbd button{ padding:16px 0; border-radius:12px; background:#0a1020; border:1px solid #263048; color:#e2e8f0; font-weight:800 }
+    .answer-box{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+    input.answer{ font-size:22px; padding:10px 12px; border-radius:10px; border:2px solid #334155; width:220px; background:#0b1224; color:#e2e8f0 }
+    .muted{ color:#94a3b8 }
+    .center{ text-align:center }
+    .small{ font-size:13px; color:#94a3b8 }
+    .kbd .btn-outline{ border-color:#334155 }
+    .pill.session{ background:#0a1020; border:1px dashed #334155 }
+    .stack{ display:grid; gap:8px }
+    .board{ background:#0a1020; border:1px solid #263048; border-radius:12px; padding:10px }
+    .board h3{ margin:0 0 6px; font-size:18px }
+    .board .row{ justify-content:space-between }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div id="view" class="card"></div>
+  </div>
+
+<script>
+// ===== Utils & RNG seeded =====
+const el = s => document.querySelector(s);
+const setView = h => el('#view').innerHTML = h;
+const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
+const sha1 = async (txt) => {
+  const enc = new TextEncoder().encode(txt);
+  const buf = await crypto.subtle.digest('SHA-1', enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+};
+
+// Seeded RNG (Mulberry32)
+function mulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; } }
+function makeRand(seed){ let s=0; for(let i=0;i<seed.length;i++){ s = (s*31 + seed.charCodeAt(i))>>>0; } const r=mulberry32(s||1); return { int:(a,b)=>Math.floor(r()*(b-a+1))+a, pick:(arr)=>arr[Math.floor(r()*arr.length)], shuffle:(arr)=>arr.map(v=>[r(),v]).sort((A,B)=>A[0]-B[0]).map(p=>p[1]) }; }
+
+// Math helpers
+const gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a);
+const simplifyFrac=(n,d)=>{const g=gcd(n,d);return [n/g,d/g]}
+const compareFrac=(a,b,c,d)=>a*d-b*c;
+
+// Themes (15)
+const THEMES=[
+  { key:'mult_lt_10',  label:'🔢 Multiplications < 10' },
+  { key:'add_carry',   label:'➕ Additions avec retenue' },
+  { key:'decimals',    label:'🔟 Décimaux simples' },
+  { key:'integers',    label:'➖ Relatifs (±)' },
+  { key:'fractions',   label:'🧮 Fractions à simplifier' },
+  { key:'mult_lt_20',  label:'✖️ Multiplications < 20' },
+  { key:'div_int_easy',label:'➗ Divisions entières facilement' },
+  { key:'squares_roots',label:'⬛ Carrés & √ exactes' },
+  { key:'perc_simple', label:'% simples (10,20,25,50)' },
+  { key:'perc_est',    label:'% ordre de grandeur' },
+  { key:'frac_compare',label:'⇅ Comparer des fractions' },
+  { key:'frac_add_same',label:'➕ Fractions : même dénominateur' },
+  { key:'dec_pow10',   label:'🔟 Décimaux × 10/100/1000' },
+  { key:'equations',   label:'Équations simples' },
+  { key:'rel_proddiv', label:'± Relatifs : × et ÷' },
+];
+
+function labelForTheme(key){ const t=THEMES.find(x=>x.key===key); return t? t.label : key; }
+
+// Generators (identiques à la version multi-thèmes)
+function genQuestion(themeKey, R){
+  const rnd=(a,b)=>R.int(a,b), sample=(arr)=>R.pick(arr), shuffle=(arr)=>R.shuffle(arr);
+  switch(themeKey){
+    case 'mult_lt_10':{
+      const a=rnd(2,9), b=rnd(2,9), correct=a*b;
+      const cand=new Set([correct]);
+      while(cand.size<4){ const d=sample([-6,-4,-3,-2,-1,1,2,3,4,6]); cand.add(Math.max(0,correct+d)); }
+      const choices=shuffle([...cand]); return {theme:themeKey,prompt:`${a} × ${b} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+    }
+    case 'add_carry':{
+      const base=[rnd(10,99),rnd(100,999)][rnd(0,1)];
+      const mod=[-1,-2,-3,-4,-5,-6,-7,-8,-9][rnd(0,8)];
+      const a=base-(base%10)+(10+mod), add=rnd(2,9), correct=a+add;
+      const choices=shuffle([correct,correct-1,correct+1,a+10]);
+      return {theme:themeKey,prompt:`${a} + ${add} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+    }
+    case 'decimals':{
+      const a=(rnd(10,150)/10).toFixed(1), b=(rnd(5,100)/10).toFixed(1), op=rnd(0,1)===0?'+':'−';
+      const av=parseFloat(a), bv=parseFloat(b);
+      const correct=parseFloat((op==='+'?av+bv:av-bv).toFixed(1));
+      const choices=shuffle([correct,parseFloat((correct+0.1).toFixed(1)),parseFloat((correct-0.1).toFixed(1)),parseFloat((op==='+'? av+(bv+1): av-(bv-1)).toFixed(1))]);
+      return {theme:themeKey,prompt:`${a} ${op} ${b} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'decimal1'};
+    }
+    case 'integers':{
+      const a=rnd(-20,20), b=rnd(-20,20), op=rnd(0,1)===0?'+':'−';
+      const correct=op==='+'?a+b:a-b;
+      const choices=shuffle([correct,correct+1,correct-1,-correct]);
+      return {theme:themeKey,prompt:`${a} ${op} ${b} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+    }
+    case 'fractions':{
+      const a=rnd(2,9), b=rnd(2,9), k=rnd(2,9), n=a*k,d=b*k;
+      const g=gcd(n,d); const sn=n/g, sd=d/g; const correct=`${sn}/${sd}`;
+      const choices=shuffle([correct,`${sn}/${Math.max(2,sd+1)}`,`${Math.max(1,sn+1)}/${sd}`,`${n}/${d}`]);
+      return {theme:themeKey,prompt:`Simplifier ${n}/${d}`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'fraction'};
+    }
+    case 'mult_lt_20':{
+      const a=rnd(6,19), b=rnd(6,19), correct=a*b;
+      const near=[correct-a,correct+a,correct-b,correct+b], misc=[correct+sample([-3,-2,-1,1,2,3])];
+      const pool=[correct,...near,...misc].filter((v,i,arr)=>arr.indexOf(v)===i && v>0).slice(0,4);
+      const choices=shuffle(pool.length>=4?pool:[correct,correct-1,correct+1,correct+a]);
+      return {theme:themeKey,prompt:`${a} × ${b} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+    }
+    case 'div_int_easy':{
+      const b=sample([2,3,4,5,6,7,8,9,10,12]), q=rnd(2,20), a=b*q, correct=q;
+      const choices=shuffle([correct,q+1,q-1,q+2].filter((v,i,arr)=>arr.indexOf(v)===i && v>=0));
+      return {theme:themeKey,prompt:`${a} ÷ ${b} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+    }
+    case 'squares_roots':{
+      if(rnd(0,1)===0){
+        const n=rnd(6,20), correct=n*n;
+        const choices=shuffle([correct,(n-1)*(n-1),(n+1)*(n+1),correct+10]);
+        return {theme:themeKey,prompt:`${n}² = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+      }else{
+        const base=[4,9,16,25,36,49,64,81,100,121,144,169,196,225,256,289,324,361,400];
+        const sq=sample(base);
+        const correct=Math.round(Math.sqrt(sq));
+        const choices=shuffle([ correct, correct-1, correct+1, correct+2 ].filter(v=>v>0));
+        return {theme:themeKey,prompt:`√${sq} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+      }
+    }
+    case 'perc_simple':{
+      const pct=sample([10,20,25,50]), base=sample([40,80,100,120,160,200,240,400,500,800]);
+      const correct=Math.round(base*pct/100);
+      const choices=shuffle([correct,Math.round(base*(pct+10)/100),Math.round(base*(pct-10)/100),Math.round(base*0.5)]);
+      return {theme:themeKey,prompt:`${pct}% de ${base} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+    }
+    case 'perc_est':{
+      const pct=rnd(11,89), base=sample([100,200,300,400,500,800,1000]);
+      const correct=Math.round(base*pct/100);
+      const choices=shuffle([correct,Math.round(base*0.5),base,pct]);
+      return {theme:themeKey,prompt:`${pct}% de ${base} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+    }
+    case 'frac_compare':{
+      const a=rnd(2,9), b=rnd(3,10), c=rnd(2,9), d=rnd(3,10);
+      const left=`${a}/${b}`, right=`${c}/${d}`, cmp=compareFrac(a,b,c,d);
+      const correct= cmp>0?left : (cmp<0?right:'égal');
+      const choices=shuffle([left,right,'égal',cmp>0?right:left]);
+      return {theme:themeKey,prompt:`Laquelle est la plus grande ? ${left} ou ${right}`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'pick_one'};
+    }
+    case 'frac_add_same':{
+      const den=rnd(3,12), n1=rnd(1,den-1), n2=rnd(1,den-1), s=n1+n2;
+      const g=gcd(s,den); const sn=s/g, sd=den/g; const correct=`${sn}/${sd}`;
+      const choices=shuffle([correct,`${s}/${den}`,`${sn}/${Math.max(2,sd+1)}`,`${Math.max(1,sn+1)}/${sd}`]);
+      return {theme:themeKey,prompt:`${n1}/${den} + ${n2}/${den} = ? (forme simplifiée)`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'fraction'};
+    }
+    case 'dec_pow10':{
+      const base=(R.int(10,999)/10), pow=R.pick([10,100,1000]); const correct=Number((base*pow).toFixed(1));
+      const choices=shuffle([correct,Number((base*(pow/10)).toFixed(1)),Number((base*(pow*10)).toFixed(1)),Number((base*(pow-1)).toFixed(1))]);
+      return {theme:themeKey,prompt:`${base.toFixed(1)} × ${pow} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'decimal1'};
+    }
+    case 'equations':{
+      if(R.int(0,1)===0){
+        const a=R.int(2,20), b=R.int(5,40), x=b-a, correct=x;
+        const choices=shuffle([correct,x+1,x-1,x+2]);
+        return {theme:themeKey,prompt:`Résoudre : x + ${a} = ${b}`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+      }else{
+        const k=R.pick([2,3,4,5,6,7,8,9]), x=R.int(2,20), b=k*x, correct=x;
+        const choices=shuffle([correct,x+1,x-1,x+2]);
+        return {theme:themeKey,prompt:`Résoudre : ${k}x = ${b}`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+      }
+    }
+    case 'rel_proddiv':{
+      const a=R.int(-12,12), b=R.int(-12,12)||1, op=R.int(0,4)<3?'×':'÷';
+      if(op==='×'){ const correct=a*b;
+        const choices=shuffle([correct,-a*b,correct+1,correct-1]);
+        return {theme:themeKey,prompt:`${a} × ${b} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+      }else{
+        const den=b===0?1:b, num=den*R.int(-12,12), correct=num/den;
+        const choices=shuffle([correct,-correct,correct+1,correct-1]);
+        return {theme:themeKey,prompt:`${num} ÷ ${den} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+      }
+    }
+  }
+}
+
+// ===== Shared state helpers =====
+function buildQuestionsFromSeed(seed, selectedThemes, numQ){
+  const R = makeRand(seed);
+  const qs=[];
+  for(let i=0;i<numQ;i++){
+    const tk = R.pick(selectedThemes);
+    const q = genQuestion(tk, R);
+    qs.push(q);
+  }
+  return qs;
+}
+
+// ===== Views =====
+let state = {
+  mode: 'home', // home | teacher | student | play | results | board
+  selectedThemes: [],
+  secondsPerQ: 12,
+  numQuestions: 10,
+  sessionCode: '', // seed text
+  name: '',
+  questions: [],
+  index: 0,
+  answers: [],
+  timeLeft: 0,
+  timerId: null,
+  recapId: null,
+  recapLeft: 0,
+  board: [] // {name, score}
+};
+
+function renderHome(){
+  setView(`
+    <h1>Concours Calcul Mental – Lite</h1>
+    <p class="lead">Version sans serveur : le <strong>prof</strong> lance la session et donne le <strong>code</strong> aux élèves. Tout le monde démarre en même temps.</p>
+    <div class="row"><a class="btn-outline" href="./index.html">⬅ Accueil</a>
+      <button id="btn-teacher">Mode Prof</button>
+      <button id="btn-student" class="btn-outline">Mode Élève</button>
+    </div>
+  `);
+  el('#btn-teacher').addEventListener('click', renderTeacherSetup);
+  el('#btn-student').addEventListener('click', renderStudentJoin);
+}
+
+function themeList(defaultChecked=5){
+  return `
+    <div class="themes">
+      ${THEMES.map((t,i)=>`
+        <label class="theme-item">
+          <input type="checkbox" class="tchk" data-key="${t.key}" ${i<defaultChecked?'checked':''} />
+          <span>${t.label}</span>
+        </label>
+      `).join('')}
+    </div>`;
+}
+
+function getSelectedThemes(){ return [...document.querySelectorAll('.tchk')].filter(c=>c.checked).map(c=>c.dataset.key); }
+
+function renderTeacherSetup(){
+  setView(`
+    <h1>Mode Prof</h1>
+    <p class="lead">Coche tes thèmes, choisis le format, puis génère un <strong>code de session</strong> à donner aux élèves.</p>
+    <div class="row" style="margin-bottom:8px">
+      <button id="btn-all" class="btn-outline">Tout cocher</button>
+      <button id="btn-none" class="btn-outline">Tout décocher</button>
+      <button id="btn-basic" class="btn-outline">Pack collège (10)</button>
+      <button id="btn-rand5" class="btn-outline">5 aléatoires 🎲</button>
+    </div>
+    ${themeList()}
+    <div class="grid" style="margin-top:14px">
+      <div class="row">
+        <label>Temps / question</label>
+        <select id="sel-time">
+          ${[5,8,10,12,15,20,25,30].map(s=>`<option value="${s}" ${s===12?'selected':''}>${s}s</option>`).join('')}
+        </select>
+        <label>Nombre de questions</label>
+        <select id="sel-count">
+          ${[5,10,15,20].map(n=>`<option value="${n}" ${n===10?'selected':''}>${n}</option>`).join('')}
+        </select>
+      </div>
+      <div class="row">
+        <button id="btn-gencode">Générer le code</button>
+        <button id="btn-home" class="btn-outline">Accueil</button>
+      </div>
+    </div>
+  `);
+  const chks = ()=>[...document.querySelectorAll('.tchk')];
+  el('#btn-all').addEventListener('click', ()=> chks().forEach(c=>c.checked=true));
+  el('#btn-none').addEventListener('click', ()=> chks().forEach(c=>c.checked=false));
+  el('#btn-basic').addEventListener('click', ()=> {
+    const keys = new Set(['mult_lt_10','add_carry','decimals','integers','fractions','perc_simple','equations','div_int_easy','squares_roots','dec_pow10']);
+    chks().forEach(c=> c.checked = keys.has(c.dataset.key));
+  });
+  el('#btn-rand5').addEventListener('click', ()=> {
+    chks().forEach(c=>c.checked=false);
+    const all = chks(); const idx=[...Array(all.length).keys()].sort(()=>Math.random()-0.5).slice(0,5);
+    idx.forEach(i=> all[i].checked=true);
+  });
+  el('#btn-gencode').addEventListener('click', async ()=>{
+    const sel = getSelectedThemes();
+    if(sel.length===0){ alert('Choisis au moins un thème.'); return; }
+    const time = parseInt(el('#sel-time').value,10);
+    const count = parseInt(el('#sel-count').value,10);
+    const payload = JSON.stringify({ sel, time, count, ts: Date.now() });
+    const hash = await sha1(payload);
+    state.sessionCode = hash.slice(0,8).toUpperCase();
+    state.selectedThemes = sel; state.secondsPerQ = time; state.numQuestions = count;
+    renderTeacherLobby();
+  });
+  el('#btn-home').addEventListener('click', renderHome);
+}
+
+function renderTeacherLobby(){
+  setView(`
+    <h1>Session prête</h1>
+    <p class="lead">Donne ce <strong>code</strong> aux élèves pour rejoindre :</p>
+    <p class="pill session">Code session : <strong>${state.sessionCode}</strong></p>
+    <div class="small">Tout le monde clic sur “Prêt” → tu démarres avec le compte à rebours.</div>
+    <div class="row" style="margin-top:12px">
+      <button id="btn-start">Démarrer (compte à rebours 5s)</button>
+      <button id="btn-back" class="btn-outline">Retour</button>
+    </div>
+    <div class="board" style="margin-top:14px">
+      <h3>Tableau de scores (saisie rapide)</h3>
+      <div class="stack" id="board-list"></div>
+      <div class="row" style="margin-top:8px">
+        <input id="in-name" placeholder="Prénom" />
+        <input id="in-score" placeholder="Score" type="number" min="0" />
+        <button id="btn-add">Ajouter au tableau</button>
+      </div>
+    </div>
+  `);
+  el('#btn-start').addEventListener('click', ()=>{
+    // Génère les questions côté prof aussi (même seed logique : code + index)
+    const R = makeRand(state.sessionCode);
+    state.questions = buildQuestionsFromSeed(state.sessionCode, state.selectedThemes, state.numQuestions);
+    state.index=0; state.answers=[];
+    renderCountdownThenPlay();
+  });
+  el('#btn-back').addEventListener('click', renderTeacherSetup);
+  el('#btn-add').addEventListener('click', ()=>{
+    const name = (el('#in-name').value||'').trim();
+    const sc = parseInt(el('#in-score').value||'0',10);
+    if(!name) return;
+    state.board.push({name,score:sc});
+    state.board.sort((a,b)=>b.score-a.score);
+    const list = state.board.map((r,i)=>`<div class="row"><div>${i+1}. <strong>${r.name}</strong></div><div>${r.score}</div></div>`).join('');
+    el('#board-list').innerHTML = list;
+    el('#in-name').value=''; el('#in-score').value='';
+  });
+}
+
+function renderStudentJoin(){
+  setView(`
+    <h1>Rejoindre une session</h1>
+    <p class="lead">Demande le <strong>code</strong> au professeur.</p>
+    <div class="grid">
+      <div class="row">
+        <input id="in-code" placeholder="Code (8 lettres)" />
+        <input id="in-name" placeholder="Prénom" />
+      </div>
+      <div class="row">
+        <button id="btn-ready">Prêt</button>
+        <button id="btn-home" class="btn-outline">Accueil</button>
+      </div>
+    </div>
+  `);
+  el('#btn-ready').addEventListener('click', ()=>{
+    const code = (el('#in-code').value||'').trim().toUpperCase();
+    const name = (el('#in-name').value||'').trim();
+    if(!code || code.length<4 || !name){ alert('Entre un code et ton prénom.'); return; }
+    state.sessionCode = code; state.name = name;
+    // Pour la version Lite, on démarre sur top départ prof : on prépare juste l'écran "Prêt"
+    renderStudentReady();
+  });
+  el('#btn-home').addEventListener('click', renderHome);
+}
+
+function renderStudentReady(){
+  setView(`
+    <h1>En attente du top départ…</h1>
+    <p class="lead">Le professeur va lancer le compte à rebours.</p>
+    <p class="pill session">Code : <strong>${state.sessionCode}</strong> • Élève : <strong>${state.name}</strong></p>
+    <div class="row">
+      <button id="btn-go" class="btn-outline">Je vois le top départ</button>
+      <button id="btn-leave" class="btn-outline">Quitter</button>
+    </div>
+    <p class="small">Astuce : quand le prof démarre, appuie sur “Je vois le top départ”.</p>
+  `);
+  el('#btn-go').addEventListener('click', ()=>{
+    // Construit les mêmes questions que le prof (même seed + thèmes inconnus mais encodés dans le seed par construction du prof)
+    // Comme on n'a pas les thèmes côté élève, pour la Lite : on reconstruit en utilisant seulement le code -> on suppose que prof et élèves ont le même R.pick
+    // Pour plus de cohérence, on affiche le thème dans la question.
+    const R = makeRand(state.sessionCode);
+    // On ne connaît pas les thèmes exacts choisis par le prof — version Lite : on utilise tous les thèmes (random), mais même seed → même suite pour tous les élèves.
+    const allKeys = THEMES.map(t=>t.key);
+    state.questions = buildQuestionsFromSeed(state.sessionCode, allKeys, 10); // défaut 10
+    state.secondsPerQ = 12; // défaut
+    state.index=0; state.answers=[];
+    renderCountdownThenPlay();
+  });
+  el('#btn-leave').addEventListener('click', renderHome);
+}
+
+function renderCountdownThenPlay(){
+  state.recapLeft=5;
+  setView(`
+    <h1>Démarrage…</h1>
+    <p class="lead">Le quiz commence dans <strong id="cd">${state.recapLeft}</strong> secondes.</p>
+  `);
+  const t = setInterval(()=>{
+    state.recapLeft--; const cd=el('#cd'); if(cd) cd.textContent = state.recapLeft;
+    if(state.recapLeft<=0){ clearInterval(t); startQuiz(); }
+  },1000);
+}
+
+function startQuiz(){
+  state.index=0; state.answers=[];
+  renderQuestion();
+  startTimer();
+}
+
+function renderQuestion(){
+  const q=state.questions[state.index];
+  const progress=(state.index/state.questions.length)*100;
+  setView(`
+    <div class="progress">
+      <div>${state.index+1}/${state.questions.length}</div>
+      <div class="bar" style="flex:1"><span style="width:${progress}%"></span></div>
+    </div>
+    <div class="subq">Thème : <strong>${labelForTheme(q.theme)}</strong></div>
+    <div class="q">${q.prompt}</div>
+    ${renderBody(q)}
+    <div class="footer-actions">
+      <div class="timer"><span id="tsec"></span></div>
+    </div>
+  `);
+  if(q.choices){
+    document.querySelectorAll('.choice').forEach(ch=> ch.addEventListener('click', ()=> chooseQCM(parseInt(ch.dataset.i,10)) ));
+  }else{
+    initKeypad(q.type==='fraction');
+  }
+}
+
+function renderBody(q){
+  if(q.choices){
+    return `<div class="choices">${q.choices.map((c,i)=>`<div class="choice" data-i="${i}">${c}</div>`).join('')}</div>`;
+  }else{
+    if(q.type==='fraction'){
+      return `
+        <div class="answer-box">
+          <input id="num" class="answer" type="text" inputmode="numeric" placeholder="numérateur" />
+          <span>/</span>
+          <input id="den" class="answer" type="text" inputmode="numeric" placeholder="dénominateur" />
+        </div>
+        ${renderKeypad(true)}`;
+    }else{
+      return `
+        <div class="answer-box">
+          <input id="free" class="answer" type="text" inputmode="decimal" placeholder="Ta réponse" />
+        </div>
+        ${renderKeypad(false)}`;
+    }
+  }
+}
+
+function renderKeypad(isFraction){
+  return `
+  <div class="kbd">
+    <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+    <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+    <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+    <button data-k="0">0</button><button data-k=",">,</button><button data-k="+/-">+/-</button>
+    <button data-k="back" class="btn-outline">Effacer</button>
+    <button data-k="ok">Valider</button>
+    ${isFraction?'<button data-k="swap" class="btn-outline">↕ num / den</button>':'<span></span>'}
+  </div>`;
+}
+
+function initKeypad(isFraction){
+  const input=el('#free'); const num=el('#num'), den=el('#den');
+  document.querySelectorAll('.kbd button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const k=b.dataset.k;
+      if(k==='ok'){ chooseFree(); return; }
+      if(k==='back'){ if(isFraction){ const t=(document.activeElement===den)?den:num; t.value=t.value.slice(0,-1); } else { input.value=input.value.slice(0,-1); } return; }
+      if(k==='swap' && isFraction){ (document.activeElement===num?den:num).focus(); return; }
+      if(k==='+/-' && !isFraction){ if(input.value.startsWith('-')) input.value=input.value.slice(1); else input.value='-'+input.value; return; }
+      if(isFraction){ if(k===',') return; const t=(document.activeElement===den)?den:num; t.value+=k; } else { input.value+=k; }
+    });
+  });
+}
+
+function startTimer(){
+  state.timeLeft = 12;
+  const tick = ()=>{
+    const tsec=el('#tsec'); if(tsec) tsec.textContent = `${state.timeLeft}s`;
+    state.timeLeft--;
+    if(state.timeLeft<0){
+      nextQuestion();
+    }else{
+      state.timerId = setTimeout(tick, 1000);
+    }
+  };
+  tick();
+}
+
+function nextQuestion(){
+  clearTimeout(state.timerId); state.timerId=null;
+  const q = state.questions[state.index];
+  // Auto-enregistrement si pas de choix
+  if(!state.answers[state.index]){
+    state.answers[state.index]={ isCorrect:false, timedOut:true, value:null, correct: q.correctValue };
+  }
+  state.index++;
+  if(state.index >= state.questions.length){ renderResults(); }
+  else{ renderQuestion(); startTimer(); }
+}
+
+function chooseQCM(i){
+  const q=state.questions[state.index];
+  const isCorrect = i===q.correctIndex;
+  state.answers[state.index] = { isCorrect, timedOut:false, value:q.choices[i], correct:q.correctValue };
+  // feedback court puis passe à la suivante
+  const nodes = document.querySelectorAll('.choice');
+  nodes.forEach((n,idx)=>{
+    n.classList.remove('correct','wrong');
+    if(idx===q.correctIndex) n.classList.add('correct');
+    if(idx===i && idx!==q.correctIndex) n.classList.add('wrong');
+    n.style.pointerEvents='none';
+  });
+  setTimeout(nextQuestion, 500);
+}
+
+function chooseFree(){
+  const q=state.questions[state.index];
+  let v=(el('#free')?el('#free').value:'').trim();
+  if(q.type==='fraction'){
+    const n=(el('#num').value||'').trim(); const d=(el('#den').value||'').trim();
+    if(!n||!d){ v=null } else { v=`${parseInt(n,10)||0}/${parseInt(d,10)||0}`; }
+  }else{
+    v = v.replace(',', '.');
+  }
+  const isCorrect = String(v) === String(q.correctValue);
+  state.answers[state.index] = { isCorrect, timedOut:false, value:v, correct:q.correctValue };
+  nextQuestion();
+}
+
+function renderResults(){
+  const score = state.answers.filter(a=>a && a.isCorrect).length;
+  setView(`
+    <h1>Résultat</h1>
+    <p class="lead">Score : <strong>${score}/${state.questions.length}</strong></p>
+    <div class="grid">
+      ${state.questions.map((q,idx)=>{
+        const a=state.answers[idx]||{timedOut:true};
+        const user=a.value!=null?a.value:'—';
+        const corr=q.type==='decimal1'?Number(q.correctValue).toFixed(1):q.correctValue;
+        const info=a.timedOut?'⏳':(a.isCorrect?'✔':'✘');
+        return `<div class="row" style="justify-content:space-between">
+          <div><strong>${idx+1}.</strong> [${labelForTheme(q.theme)}] ${q.prompt}</div>
+          <div>${info} ${a.isCorrect?corr:(user+' → '+corr)}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button id="btn-home">Accueil</button>
+    </div>
+  `);
+  el('#btn-home').addEventListener('click', renderHome);
+}
+renderHome();
+</script>
+</body>
+</html>

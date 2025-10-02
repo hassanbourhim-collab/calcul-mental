@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calcul Mental – Entraînement (Multi-thèmes)</title>
+  <style>
+    :root{ --bg:#f9fafb; --card:#ffffff; --text:#111827; --muted:#6b7280;
+      --primary:#2563eb; --primary-2:#1d4ed8; --good:#16a34a; --bad:#dc2626; --warn:#f59e0b; }
+    *{box-sizing:border-box}
+    body{ margin:0; background:var(--bg); color:var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial;
+      line-height:1.5; display:flex; min-height:100vh; align-items:center; justify-content:center; padding:16px; }
+    .app{ width:min(1100px,100%); }
+    .card{ background:var(--card); border-radius:16px; padding:20px; box-shadow:0 10px 20px rgba(0,0,0,.06),0 2px 6px rgba(0,0,0,.04); }
+    h1{ margin:0 0 12px 0; font-size: clamp(22px, 3vw, 28px); }
+    h2{ margin:12px 0 6px; font-size: clamp(18px, 2.5vw, 22px); }
+    p.lead{ color:var(--muted); margin:0 0 16px 0 }
+    .grid{ display:grid; gap:12px; }
+    .themes{ display:grid; grid-template-columns: repeat(1, minmax(0,1fr)); gap:8px; }
+    @media (min-width: 720px){ .themes{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (min-width: 980px){ .themes{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
+    .theme-item{ display:flex; gap:10px; align-items:center; background:#f3f4f6; border-radius:12px; padding:10px; }
+    .theme-item input{ width:18px; height:18px; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    button{ appearance:none; border:0; background:var(--primary); color:white; padding:12px 14px;
+      border-radius:12px; font-weight:700; cursor:pointer; font-size:15px;
+      transition: transform .02s ease-in-out, background .15s ease-in-out; }
+    button:hover{ background:var(--primary-2) } button:active{ transform: translateY(1px) }
+    .btn-muted{ background:#e5e7eb; color:#111827; } .btn-outline{ background:#fff; color:var(--primary); border:2px solid #dbeafe; }
+    .seg{ display:flex; gap:8px; flex-wrap:wrap; }
+    .seg button{ background:#eef2ff; color:#1d4ed8; border:2px solid #dbeafe; }
+    .seg button.active{ background:#1d4ed8; color:#fff; }
+    select, input[type="number"]{ padding:10px 12px; border-radius:10px; border:2px solid #e5e7eb; font-size:15px; }
+    .progress{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; color:var(--muted); font-weight:600; }
+    .bar{ position:relative; height:10px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
+    .bar > span{ position:absolute; inset:0; width:0%; background:linear-gradient(90deg,#60a5fa,#2563eb); transition: width .25s ease; }
+    .q{ font-size: clamp(22px, 3.4vw, 28px); margin:8px 0 10px; }
+    .subq{ color:var(--muted); margin:-6px 0 10px; font-size:14px; }
+    .choices{ display:grid; gap:10px; }
+    .choice{ background:#f3f4f6; border-radius:12px; padding:14px; text-align:center; font-weight:700; cursor:pointer; border:2px solid transparent; }
+    .choice.correct{ background:#ecfdf5; border-color:#86efac; } .choice.wrong{ background:#fef2f2; border-color:#fecaca; }
+    .footer-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; align-items:center; }
+    .timer { display:flex; align-items:center; gap:8px; font-weight:700; }
+    .timer .dot{ width:10px; height:10px; border-radius:999px; background:#16a34a; }
+    .timer.warn .dot{ background:#f59e0b; } .timer.urgent .dot{ background:#dc2626; }
+    .result-row{ display:flex; justify-content:space-between; gap:8px; padding:10px 0; border-bottom:1px dashed #e5e7eb; }
+    .pill{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; font-weight:700; }
+    .pill.good{ background:#ecfdf5; color:#166534; } .pill.bad{ background:#fef2f2; color:#991b1b; }
+    .answer-box{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    input.answer{ font-size:22px; padding:10px 12px; border-radius:10px; border:2px solid #e5e7eb; width:220px; }
+    .kbd{ display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:8px; }
+    .kbd button{ padding:16px 0; font-size:18px; border-radius:12px; background:#f3f4f6; color:#111827; border:2px solid transparent; }
+    .kbd button:hover{ background:#e5e7eb }
+    .frac{ display:flex; align-items:center; gap:8px; }
+    .frac input{ width:110px; text-align:center; }
+    .countdown{ font-size:22px; font-weight:800; color:#111827; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div id="view" class="card"></div>
+  </div>
+
+<script>
+// Utils
+const rnd = (min,max)=>Math.floor(Math.random()*(max-min+1))+min;
+const sample = (arr)=>arr[Math.floor(Math.random()*arr.length)];
+const shuffle = (arr)=>arr.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(p=>p[1]);
+const gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a);
+const simplifyFrac=(n,d)=>{const g=gcd(n,d);return [n/g,d/g]};
+const compareFrac=(a,b,c,d)=>a*d-b*c;
+const el=(s)=>document.querySelector(s);
+const setView=(h)=>{el('#view').innerHTML=h};
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+
+// Themes (15)
+const THEMES=[
+  { key:'mult_lt_10',  label:'🔢 Multiplications < 10' },
+  { key:'add_carry',   label:'➕ Additions avec retenue' },
+  { key:'decimals',    label:'🔟 Décimaux simples' },
+  { key:'integers',    label:'➖ Relatifs (±)' },
+  { key:'fractions',   label:'🧮 Fractions à simplifier' },
+  { key:'mult_lt_20',  label:'✖️ Multiplications < 20' },
+  { key:'div_int_easy',label:'➗ Divisions entières facilement' },
+  { key:'squares_roots',label:'⬛ Carrés & √ exactes' },
+  { key:'perc_simple', label:'% simples (10,20,25,50)' },
+  { key:'perc_est',    label:'% ordre de grandeur' },
+  { key:'frac_compare',label:'⇅ Comparer des fractions' },
+  { key:'frac_add_same',label:'➕ Fractions : même dénominateur' },
+  { key:'dec_pow10',   label:'🔟 Décimaux × 10/100/1000' },
+  { key:'equations',   label:'Équations simples' },
+  { key:'rel_proddiv', label:'± Relatifs : × et ÷' },
+];
+
+// Generators
+function genQuestion(themeKey){
+  switch(themeKey){
+    case 'mult_lt_10':{
+      const a=rnd(2,9), b=rnd(2,9), correct=a*b;
+      const cand=new Set([correct]);
+      while(cand.size<4){ const d=sample([-6,-4,-3,-2,-1,1,2,3,4,6]); cand.add(Math.max(0,correct+d)); }
+      const choices=shuffle([...cand]); return {theme:themeKey,prompt:`${a} × ${b} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+    }
+    case 'add_carry':{
+      const base=[rnd(10,99),rnd(100,999)][Math.random()<0.5?0:1];
+      const mod=[-1,-2,-3,-4,-5,-6,-7,-8,-9][rnd(0,8)];
+      const a=base-(base%10)+(10+mod), add=rnd(2,9), correct=a+add;
+      const choices=shuffle([correct,correct-1,correct+1,a+10]);
+      return {theme:themeKey,prompt:`${a} + ${add} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+    }
+    case 'decimals':{
+      const a=(rnd(10,150)/10).toFixed(1), b=(rnd(5,100)/10).toFixed(1), op=Math.random()<0.5?'+':'−';
+      const av=parseFloat(a), bv=parseFloat(b);
+      const correct=parseFloat((op==='+'?av+bv:av-bv).toFixed(1));
+      const choices=shuffle([correct,parseFloat((correct+0.1).toFixed(1)),parseFloat((correct-0.1).toFixed(1)),parseFloat((op==='+'? av+(bv+1): av-(bv-1)).toFixed(1))]);
+      return {theme:themeKey,prompt:`${a} ${op} ${b} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'decimal1'};
+    }
+    case 'integers':{
+      const a=rnd(-20,20), b=rnd(-20,20), op=Math.random()<0.5?'+':'−';
+      const correct=op==='+'?a+b:a-b;
+      const choices=shuffle([correct,correct+1,correct-1,-correct]);
+      return {theme:themeKey,prompt:`${a} ${op} ${b} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+    }
+    case 'fractions':{
+      const a=rnd(2,9), b=rnd(2,9), k=rnd(2,9), n=a*k,d=b*k;
+      const [sn,sd]=simplifyFrac(n,d); const correct=`${sn}/${sd}`;
+      const choices=shuffle([correct,`${sn}/${Math.max(2,sd+1)}`,`${Math.max(1,sn+1)}/${sd}`,`${n}/${d}`]);
+      return {theme:themeKey,prompt:`Simplifier ${n}/${d}`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'fraction'};
+    }
+    case 'mult_lt_20':{
+      const a=rnd(6,19), b=rnd(6,19), correct=a*b;
+      const near=[correct-a,correct+a,correct-b,correct+b], misc=[correct+sample([-3,-2,-1,1,2,3])];
+      const pool=[correct,...near,...misc].filter((v,i,arr)=>arr.indexOf(v)===i && v>0).slice(0,4);
+      const choices=shuffle(pool.length>=4?pool:[correct,correct-1,correct+1,correct+a]);
+      return {theme:themeKey,prompt:`${a} × ${b} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+    }
+    case 'div_int_easy':{
+      const b=sample([2,3,4,5,6,7,8,9,10,12]), q=rnd(2,20), a=b*q, correct=q;
+      const choices=shuffle([correct,q+1,q-1,q+2].filter((v,i,arr)=>arr.indexOf(v)===i && v>=0));
+      return {theme:themeKey,prompt:`${a} ÷ ${b} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+    }
+    case 'squares_roots':{
+      if(Math.random()<0.5){
+        const n=rnd(6,20), correct=n*n;
+        const choices=shuffle([correct,(n-1)*(n-1),(n+1)*(n+1),correct+10]);
+        return {theme:themeKey,prompt:`${n}² = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+      }else{
+        const sq=sample([4,9,16,25,36,49,64,81,100,121,144,169,196,225,256,289,324,361,400]);
+        const correct=Math.round(Math.sqrt(sq));
+        const choices=shuffle([correct,correct-1,correct+1,correct+2].filter(v=>v>0));
+        return {theme:themeKey,prompt:`√${sq} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+      }
+    }
+    case 'perc_simple':{
+      const pct=sample([10,20,25,50]), base=sample([40,80,100,120,160,200,240,400,500,800]);
+      const correct=Math.round(base*pct/100);
+      const choices=shuffle([correct,Math.round(base*(pct+10)/100),Math.round(base*(pct-10)/100),Math.round(base*0.5)]);
+      return {theme:themeKey,prompt:`${pct}% de ${base} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+    }
+    case 'perc_est':{
+      const pct=rnd(11,89), base=sample([100,200,300,400,500,800,1000]);
+      const correct=Math.round(base*pct/100);
+      const choices=shuffle([correct,Math.round(base*0.5),base,pct]);
+      return {theme:themeKey,prompt:`${pct}% de ${base} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+    }
+    case 'frac_compare':{
+      const a=rnd(2,9), b=rnd(3,10), c=rnd(2,9), d=rnd(3,10);
+      const left=`${a}/${b}`, right=`${c}/${d}`, cmp=compareFrac(a,b,c,d);
+      const correct= cmp>0?left : (cmp<0?right:'égal');
+      const choices=shuffle([left,right,'égal',cmp>0?right:left]);
+      return {theme:themeKey,prompt:`Laquelle est la plus grande ? ${left} ou ${right}`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'pick_one'};
+    }
+    case 'frac_add_same':{
+      const den=rnd(3,12), n1=rnd(1,den-1), n2=rnd(1,den-1), s=n1+n2;
+      const [sn,sd]=simplifyFrac(s,den); const correct=`${sn}/${sd}`;
+      const choices=shuffle([correct,`${s}/${den}`,`${sn}/${Math.max(2,sd+1)}`,`${Math.max(1,sn+1)}/${sd}`]);
+      return {theme:themeKey,prompt:`${n1}/${den} + ${n2}/${den} = ? (forme simplifiée)`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'fraction'};
+    }
+    case 'dec_pow10':{
+      const base=(rnd(10,999)/10), pow=sample([10,100,1000]); const correct=Number((base*pow).toFixed(1));
+      const choices=shuffle([correct,Number((base*(pow/10)).toFixed(1)),Number((base*(pow*10)).toFixed(1)),Number((base*(pow-1)).toFixed(1))]);
+      return {theme:themeKey,prompt:`${base.toFixed(1)} × ${pow} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'decimal1'};
+    }
+    case 'equations':{
+      if(Math.random()<0.5){
+        const a=rnd(2,20), b=rnd(5,40), x=b-a, correct=x;
+        const choices=shuffle([correct,x+1,x-1,x+2]);
+        return {theme:themeKey,prompt:`Résoudre : x + ${a} = ${b}`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+      }else{
+        const k=sample([2,3,4,5,6,7,8,9]), x=rnd(2,20), b=k*x, correct=x;
+        const choices=shuffle([correct,x+1,x-1,x+2]);
+        return {theme:themeKey,prompt:`Résoudre : ${k}x = ${b}`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+      }
+    }
+    case 'rel_proddiv':{
+      const a=rnd(-12,12), b=rnd(-12,12)||1, op=Math.random()<0.6?'×':'÷';
+      if(op==='×'){ const correct=a*b;
+        const choices=shuffle([correct,-a*b,correct+1,correct-1]);
+        return {theme:themeKey,prompt:`${a} × ${b} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+      }else{
+        const den=b===0?1:b, num=den*rnd(-12,12), correct=num/den;
+        const choices=shuffle([correct,-correct,correct+1,correct-1]);
+        return {theme:themeKey,prompt:`${num} ÷ ${den} = ?`,choices,correctIndex:choices.indexOf(correct),correctValue:correct,type:'int'};
+      }
+    }
+  }
+}
+
+// State
+let state={
+  selectedThemes: [],
+  mode:'qcm',
+  secondsPerQ:15,
+  numQuestions:10,
+  questions:[],
+  index:0,
+  answers:[],
+  timerId:null,
+  timeLeft:0,
+  recapId:null,
+  recapLeft:0,
+  fracFocus:'num'
+};
+
+function renderHome(){
+  setView(`
+    <h1>Entraînement (mix de thèmes)</h1>
+    <p class="lead">Coche un ou plusieurs thèmes. À chaque question, un thème est tiré au sort parmi ta sélection.</p>
+    <h2>Thèmes</h2>
+    <div class="row" style="margin-bottom:8px">
+      <button id="btn-all" class="btn-outline">Tout cocher</button>
+      <button id="btn-none" class="btn-outline">Tout décocher</button>
+      <button id="btn-basic" class="btn-outline">Pack collège (10)</button>
+      <button id="btn-rand5" class="btn-outline">5 aléatoires 🎲</button>
+    </div>
+    <div class="themes">
+      ${THEMES.map((t,i)=>`
+        <label class="theme-item">
+          <input type="checkbox" class="tchk" data-key="${t.key}" ${i<5?'checked':''} />
+          <span>${t.label}</span>
+        </label>
+      `).join('')}
+    </div>
+    <div class="grid" style="margin-top:14px">
+      <div>
+        <h2>Mode de réponse</h2>
+        <div class="seg">
+          <button id="m-qcm" class="active">QCM</button>
+          <button id="m-free">Réponse libre</button>
+        </div>
+      </div>
+      <div>
+        <h2>Temps par question</h2>
+        <div class="seg" id="time-seg">
+          ${[5,8,10,12,15,20].map(s=>`<button class="tbtn" data-s="${s}">${s}s</button>`).join('')}
+          <button class="tbtn" data-s="custom">Libre…</button>
+        </div>
+      </div>
+      <div>
+        <h2>Nombre de questions</h2>
+        <div class="seg" id="count-seg">
+          ${[5,10,15,20].map(n=>`<button class="cbtn" data-n="${n}">${n}</button>`).join('')}
+        </div>
+      </div>
+      <div class="row">
+        <a class="btn-outline" href="./index.html">⬅ Accueil</a>
+        <button id="btn-start">Commencer</button>
+      </div>
+    </div>
+  `);
+  const chks = ()=>[...document.querySelectorAll('.tchk')];
+  el('#btn-all').addEventListener('click', ()=> chks().forEach(c=>c.checked=true));
+  el('#btn-none').addEventListener('click', ()=> chks().forEach(c=>c.checked=false));
+  el('#btn-basic').addEventListener('click', ()=> {
+    const keys = new Set(['mult_lt_10','add_carry','decimals','integers','fractions','perc_simple','equations','div_int_easy','squares_roots','dec_pow10']);
+    chks().forEach(c=> c.checked = keys.has(c.dataset.key));
+  });
+  el('#btn-rand5').addEventListener('click', ()=> {
+    chks().forEach(c=>c.checked=false);
+    const all = chks(); const idx=[...Array(all.length).keys()].sort(()=>Math.random()-0.5).slice(0,5);
+    idx.forEach(i=> all[i].checked=true);
+  });
+  el('#m-qcm').addEventListener('click', ()=>{ state.mode='qcm'; el('#m-qcm').classList.add('active'); el('#m-free').classList.remove('active'); });
+  el('#m-free').addEventListener('click', ()=>{ state.mode='free'; el('#m-free').classList.add('active'); el('#m-qcm').classList.remove('active'); });
+  el('#time-seg').querySelectorAll('.tbtn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const v=b.dataset.s;
+      if(v==='custom'){
+        const s = clamp(parseInt(prompt('Temps (3 à 60 s) :', String(state.secondsPerQ))||'15',10),3,60);
+        state.secondsPerQ=s; highlightTimeBtn(null);
+      }else{ state.secondsPerQ=parseInt(v,10); highlightTimeBtn(state.secondsPerQ); }
+    });
+  });
+  function highlightTimeBtn(s){
+    el('#time-seg').querySelectorAll('.tbtn').forEach(bb=>{
+      const val = bb.dataset.s==='custom'? null : parseInt(bb.dataset.s,10);
+      bb.classList.toggle('active', s!==null && val===s);
+    });
+  }
+  function highlightCountBtn(n){
+    el('#count-seg').querySelectorAll('.cbtn').forEach(bb=> bb.classList.toggle('active', parseInt(bb.dataset.n,10)===n));
+  }
+  highlightTimeBtn(15);
+  el('#count-seg').querySelectorAll('.cbtn').forEach(b=>{
+    b.addEventListener('click', ()=>{ state.numQuestions=parseInt(b.dataset.n,10); highlightCountBtn(state.numQuestions); });
+  });
+  highlightCountBtn(10);
+  el('#btn-start').addEventListener('click', startFromHome);
+}
+
+function startFromHome(){
+  const sel=[...document.querySelectorAll('.tchk')].filter(c=>c.checked).map(c=>c.dataset.key);
+  if(sel.length===0){ alert('Choisis au moins un thème.'); return; }
+  state.selectedThemes=sel;
+  renderRecap();
+}
+
+function renderRecap(){
+  state.recapLeft=5;
+  setView(`
+    <h1>Prêt ?</h1>
+    <p class="lead">Tu vas jouer <strong>${state.numQuestions} questions</strong>.</p>
+    <ul>
+      <li>Thèmes sélectionnés : <strong>${state.selectedThemes.map(labelForTheme).join(', ')}</strong></li>
+      <li>Mode : <strong>${state.mode==='qcm'?'QCM':'Réponse libre'}</strong></li>
+      <li>Temps par question : <strong>${state.secondsPerQ} s</strong></li>
+    </ul>
+    <p class="countdown" id="countdown">Démarrage dans ${state.recapLeft}…</p>
+    <div class="footer-actions">
+      <button id="btn-cancel" class="btn-muted">Annuler</button>
+      <button id="btn-skip" class="btn-outline">Démarrer maintenant</button>
+    </div>
+  `);
+  const cd=()=>{ const c=el('#countdown'); if(c) c.textContent=`Démarrage dans ${state.recapLeft}…`; };
+  cd();
+  state.recapId=setInterval(()=>{
+    state.recapLeft--; cd();
+    if(state.recapLeft<=0){ clearInterval(state.recapId); startQuiz(); }
+  },1000);
+  el('#btn-cancel').addEventListener('click', renderHome);
+  el('#btn-skip').addEventListener('click', startQuiz);
+}
+
+function startQuiz(){
+  clearTimers();
+  state.index=0; state.answers=[]; state.questions=[];
+  for(let i=0;i<state.numQuestions;i++){
+    const tk= sample(state.selectedThemes);
+    const q = genQuestion(tk);
+    state.questions.push(q);
+  }
+  renderQuestion();
+}
+
+function renderQuestion(){
+  clearTimers();
+  const q=state.questions[state.index];
+  const progress=(state.index/state.questions.length)*100;
+  setView(`
+    <div class="progress">
+      <div>${state.index+1}/${state.questions.length} • ${state.mode==='qcm'?'QCM':'Réponse libre'}</div>
+      <div class="bar" style="flex:1"><span style="width:${progress}%"></span></div>
+    </div>
+    <div class="subq">Thème : <strong>${labelForTheme(q.theme)}</strong></div>
+    <div class="q">${q.prompt}</div>
+    ${renderBody(q)}
+    <div class="footer-actions">
+      <div id="timer" class="timer"><span class="dot"></span><span id="tsec"></span></div>
+      <a class="btn-outline" href="./index.html">⬅ Accueil</a>
+    </div>
+  `);
+  if(state.mode==='qcm' || q.type==='pick_one'){
+    document.querySelectorAll('.choice').forEach(ch=> ch.addEventListener('click', ()=> chooseQCM(parseInt(ch.dataset.i,10)) ));
+  }else{
+    initKeypad(q.type==='fraction');
+  }
+  startTimer();
+}
+
+function renderBody(q){
+  if(state.mode==='qcm' || q.type==='pick_one'){
+    const arr=q.choices && q.choices.length?q.choices:[q.correctValue, q.correctValue+1, q.correctValue-1, q.correctValue+2];
+    return `<div class="choices">${arr.map((c,i)=>`<div class="choice" data-i="${i}">${c}</div>`).join('')}</div>`;
+  }else{
+    if(q.type==='fraction'){
+      return `
+        <div class="answer-box">
+          <div class="frac">
+            <input id="num" class="answer" type="text" inputmode="numeric" placeholder="numérateur" />
+            <span>/</span>
+            <input id="den" class="answer" type="text" inputmode="numeric" placeholder="dénominateur" />
+          </div>
+        </div>
+        ${renderKeypad(true)}
+      `;
+    }else{
+      return `
+        <div class="answer-box">
+          <input id="free" class="answer" type="text" inputmode="decimal" placeholder="Ta réponse" />
+        </div>
+        ${renderKeypad(false)}
+      `;
+    }
+  }
+}
+
+function renderKeypad(isFraction){
+  return `
+  <div class="kbd">
+    <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+    <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+    <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+    <button data-k="0">0</button><button data-k=",">,</button><button data-k="+/-">+/-</button>
+    <button data-k="back" class="btn-outline">Effacer</button>
+    <button data-k="ok">Valider</button>
+    ${isFraction?'<button data-k="swap" class="btn-outline">↕ num / den</button>':'<span></span>'}
+  </div>`;
+}
+
+function initKeypad(isFraction){
+  const input=el('#free'); const num=el('#num'), den=el('#den');
+  if(isFraction){ num.addEventListener('focus',()=>state.fracFocus='num'); den.addEventListener('focus',()=>state.fracFocus='den'); state.fracFocus='num'; }
+  document.querySelectorAll('.kbd button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const k=b.dataset.k;
+      if(k==='ok'){ chooseFree(); return; }
+      if(k==='back'){ if(isFraction){ const t=state.fracFocus==='num'?num:den; t.value=t.value.slice(0,-1); } else { input.value=input.value.slice(0,-1); } return; }
+      if(k==='swap' && isFraction){ state.fracFocus=state.fracFocus==='num'?'den':'num'; (state.fracFocus==='num'?num:den).focus(); return; }
+      if(k==='+/-'){ if(!isFraction){ if(input.value.startsWith('-')) input.value=input.value.slice(1); else input.value='-'+input.value; } return; }
+      if(isFraction){ if(k===',') return; const t=state.fracFocus==='num'?num:den; t.value+=k; } else { input.value+=k; }
+    });
+  });
+}
+
+function startTimer(){
+  state.timeLeft=state.secondsPerQ; updateTimerUI();
+  state.timerId=setInterval(()=>{
+    state.timeLeft--; updateTimerUI();
+    if(state.timeLeft<=0){ clearTimers();
+      const q=state.questions[state.index];
+      if(state.mode==='qcm' || q.type==='pick_one'){ recordAnswer({choiceIndex:-1,isCorrect:false,timedOut:true}); }
+      else { recordAnswer({freeValue:null,isCorrect:false,timedOut:true}); }
+      advance();
+    }
+  },1000);
+}
+
+function updateTimerUI(){
+  const t=el('#timer'); if(!t) return;
+  el('#tsec').textContent=`${state.timeLeft}s restantes`;
+  t.classList.toggle('warn', state.timeLeft <= Math.ceil(state.secondsPerQ/2) && state.timeLeft > Math.ceil(state.secondsPerQ/5));
+  t.classList.toggle('urgent', state.timeLeft <= Math.ceil(state.secondsPerQ/5));
+}
+
+function clearTimers(){
+  if(state.timerId){ clearInterval(state.timerId); state.timerId=null; }
+  if(state.recapId){ clearInterval(state.recapId); state.recapId=null; }
+}
+
+function chooseQCM(i){
+  clearTimers();
+  const q=state.questions[state.index]; const correct=q.correctIndex; const isCorrect=i===correct;
+  document.querySelectorAll('.choice').forEach((ch,idx)=>{
+    ch.classList.remove('correct','wrong');
+    if(idx===correct) ch.classList.add('correct');
+    if(idx===i && idx!==correct) ch.classList.add('wrong');
+    ch.style.pointerEvents='none';
+  });
+  recordAnswer({choiceIndex:i,isCorrect,timedOut:false}); setTimeout(advance,550);
+}
+
+function parseFree(q){
+  if(q.type==='fraction'){
+    const n=(el('#num').value||'').trim(); const d=(el('#den').value||'').trim();
+    if(!n||!d) return null; return `${parseInt(n,10)||0}/${parseInt(d,10)||0}`;
+  }else{
+    let v=(el('#free').value||'').trim(); if(v==='') return null; v=v.replace(',', '.'); const num=Number(v);
+    if(Number.isNaN(num)) return null; if(q.type==='decimal1') return Number(num.toFixed(1)); if(q.type==='int') return Math.trunc(num); return num;
+  }
+}
+
+function chooseFree(){
+  clearTimers();
+  const q=state.questions[state.index]; const user=parseFree(q);
+  let isCorrect=false; if(q.type==='fraction'){ isCorrect = user===q.correctValue; } else { isCorrect = Number(user)===Number(q.correctValue); }
+  recordAnswer({freeValue:user,isCorrect,timedOut:false}); setTimeout(advance,200);
+}
+
+function recordAnswer(obj){
+  const q=state.questions[state.index];
+  state.answers.push({ choiceIndex: obj.choiceIndex ?? -1, correctIndex: q.correctIndex ?? null, isCorrect: !!obj.isCorrect, timedOut: !!obj.timedOut, freeValue: obj.freeValue ?? null, theme:q.theme });
+}
+
+function advance(){
+  state.index++; if(state.index>=state.questions.length) renderResult(); else renderQuestion();
+}
+
+function renderResult(){
+  const total=state.answers.filter(a=>a.isCorrect).length;
+  setView(`
+    <h1>Résultat</h1>
+    <p class="lead">Score : <strong>${total}/${state.questions.length}</strong></p>
+    <div class="grid">
+      ${state.questions.map((q,idx)=>{
+        const a=state.answers[idx];
+        const user = a.freeValue!=null ? a.freeValue : (a.choiceIndex>=0 ? q.choices[a.choiceIndex] : '—');
+        const corr = q.type==='decimal1' ? Number(q.correctValue).toFixed(1) : q.correctValue;
+        const info = a.timedOut ? '⏳ temps écoulé' : (a.isCorrect ? '✔' : '✘');
+        return `
+        <div class="result-row">
+          <div><strong>Q${idx+1}.</strong> [${labelForTheme(a.theme)}] ${q.prompt}</div>
+          <div>${a.isCorrect ? `<span class="pill good">${info} ${corr}</span>` : `<span class="pill bad">${info} ${user}</span> <span class="pill good">→ ${corr}</span>`}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="footer-actions" style="margin-top:16px">
+      <a class="btn-outline" href="./index.html">⬅ Accueil</a>
+      <button id="btn-retry" class="">Rejouer (mêmes thèmes)</button>
+    </div>
+  `);
+  el('#btn-retry').addEventListener('click', ()=> renderRecap());
+}
+
+function labelForTheme(key){
+  const t=THEMES.find(x=>x.key===key); return t? t.label: key;
+}
+
+renderHome();
+</script>
+</body>
+</html>
